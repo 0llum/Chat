@@ -8,13 +8,13 @@ import java.util.*;
 
 public class Server {
     public static final int PORT = 1342;
-    public static Map<Socket, String> clients;
+    public static List<Socket> clients;
     public static int clientCount;
 
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = null;
         Socket socket = null;
-        clients = new HashMap<>();
+        clients = new ArrayList<>();
 
         DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
 
@@ -43,8 +43,8 @@ public class Server {
             }
 
             clientCount++;
-            clients.put(socket, socket.getInetAddress().getHostAddress());
-            new ServerThread(socket, socket.getInetAddress().getHostAddress()).start();
+            clients.add(socket);
+            new ServerThread(socket).start();
         }
     }
 
@@ -53,7 +53,7 @@ public class Server {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                System.out.println(clients.values());
+                System.out.println(clients);
             }
         }, 0, 5000);
     }

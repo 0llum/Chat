@@ -1,6 +1,8 @@
 package Client;
 
 import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -19,7 +21,9 @@ public class Client extends Application {
 
     public static Socket socket;
     private PrintStream printStream;
-    private String message;
+    private String username, serverIP, message;
+    private int serverPort;
+    private TextField textFieldUsername, textFieldServerIP, textFieldServerPort, textField;
 
     @Override
     public void init() throws Exception {
@@ -32,36 +36,39 @@ public class Client extends Application {
         Scene scene = new Scene(root);
         stage.setTitle("Chat");
 
-        TextField textFieldServerIP = new TextField();
+        textFieldUsername = new TextField();
+        textFieldUsername.setMinSize(100, 20);
+        textFieldUsername.setPromptText("Username");
+        textFieldUsername.setOnKeyPressed(event -> {
+            if (event.getCode().equals(KeyCode.ENTER)) {
+                onConnectToServerClicked();
+            }
+        });
+
+        textFieldServerIP = new TextField();
         textFieldServerIP.setMinSize(200, 20);
         textFieldServerIP.setPromptText("Server IP");
-        textFieldServerIP.setFocusTraversable(false);
+        textFieldServerIP.setOnKeyPressed(event -> {
+            if (event.getCode().equals(KeyCode.ENTER)) {
+                onConnectToServerClicked();
+            }
+        });
 
-        TextField textFieldServerPort = new TextField();
+        textFieldServerPort = new TextField();
         textFieldServerPort.setMinSize(50, 20);
         textFieldServerPort.setPromptText("Server Port");
-        textFieldServerPort.setFocusTraversable(false);
+        textFieldServerPort.setOnKeyPressed(event -> {
+            if (event.getCode().equals(KeyCode.ENTER)) {
+                onConnectToServerClicked();
+            }
+        });
 
         Button connectButton = new Button("Connect");
-        connectButton.setOnAction(event -> {
-            if (textFieldServerIP.getText().isEmpty()) {
-                return;
-            }
-
-            if (textFieldServerPort.getText().isEmpty()) {
-                return;
-            }
-
-            String serverIP = textFieldServerIP.getText();
-            int serverPort = Integer.parseInt(textFieldServerPort.getText());
-            connectToServer(serverIP, serverPort);
-        });
+        connectButton.setOnAction(event -> onConnectToServerClicked());
         connectButton.setFocusTraversable(false);
 
         Button disconnectButton = new Button("Disonnect");
-        disconnectButton.setOnAction(event -> {
-            disconnectFromServer();
-        });
+        disconnectButton.setOnAction(event -> disconnectFromServer());
         disconnectButton.setFocusTraversable(false);
 
         textArea = new TextArea();
@@ -69,9 +76,8 @@ public class Client extends Application {
         textArea.setFocusTraversable(false);
         textArea.setEditable(false);
 
-        TextField textField = new TextField();
+        textField = new TextField();
         textField.setMinSize(400, 20);
-        textField.requestFocus();
         textField.setOnKeyPressed(event -> {
             if (event.getCode().equals(KeyCode.ENTER)) {
                 message = textField.getText();
@@ -84,6 +90,7 @@ public class Client extends Application {
         sendButton.setOnAction(event -> textField.clear());
 
         HBox serverAddressFields = new HBox();
+        serverAddressFields.getChildren().add(textFieldUsername);
         serverAddressFields.getChildren().add(textFieldServerIP);
         serverAddressFields.getChildren().add(textFieldServerPort);
         serverAddressFields.getChildren().add(connectButton);
@@ -111,6 +118,24 @@ public class Client extends Application {
         super.stop();
     }
 
+    private void onConnectToServerClicked() {
+        if (textFieldUsername.getText().isEmpty()) {
+            return;
+        }
+        if (textFieldServerIP.getText().isEmpty()) {
+            return;
+        }
+
+        if (textFieldServerPort.getText().isEmpty()) {
+            return;
+        }
+
+        username = textFieldUsername.getText();
+        serverIP = textFieldServerIP.getText();
+        serverPort = Integer.parseInt(textFieldServerPort.getText());
+        connectToServer(serverIP, serverPort);
+    }
+
     private void connectToServer(String serverIP, int port) {
         if (socket != null && socket.isConnected()) {
             textArea.appendText("Already connected\n\n");
@@ -127,6 +152,8 @@ public class Client extends Application {
         }
 
         new ClientThread(socket).start();
+        printStream.println(username);
+        textField.requestFocus();
     }
 
     private void disconnectFromServer() {

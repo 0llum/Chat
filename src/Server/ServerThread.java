@@ -12,13 +12,13 @@ public class ServerThread extends Thread {
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm:ss");
 
     private Socket socket;
-    private String id, localIP, publicIP;
     private PrintStream toClientListPrintStream;
     private PrintStream toClientPrintStream;
 
-    public ServerThread(Socket socket, String id) {
+    private String username, line;
+
+    public ServerThread(Socket socket) {
         this.socket = socket;
-        this.id = id;
     }
 
     public void run() {
@@ -30,8 +30,11 @@ public class ServerThread extends Thread {
             toClientPrintStream = new PrintStream(socket.getOutputStream());
             bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
 
-            localIP = socket.getLocalAddress().getHostAddress();
-            publicIP = socket.getInetAddress().getHostAddress();
+            try {
+                username = bufferedReader.readLine();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
             statusToServerLog("connected");
 
@@ -45,8 +48,6 @@ public class ServerThread extends Thread {
         } catch (IOException e) {
             return;
         }
-
-        String line;
 
         while (true) {
             try {
@@ -73,42 +74,38 @@ public class ServerThread extends Thread {
     }
 
     private void statusToClient(String status) {
-        toClientPrintStream.println(localIP + " @ " + publicIP);
-        toClientPrintStream.println(DATE_FORMAT.format(new Date()) + " --> " + status + "\n");
+        toClientPrintStream.println(DATE_FORMAT.format(new Date()) + " - " + username + " --> " + status + "\n");
     }
 
     private void statusToClientList(String status) throws IOException {
-        for (Map.Entry<Socket, String> entry : Server.clients.entrySet()) {
-            if (entry.getKey() != socket) {
-                toClientListPrintStream = new PrintStream(entry.getKey().getOutputStream());
-                toClientListPrintStream.println(localIP + " @ " + publicIP);
-                toClientListPrintStream.println(DATE_FORMAT.format(new Date()) + " --> " + status + "\n");
+        for (Socket client : Server.clients) {
+            if (client != socket) {
+                toClientListPrintStream = new PrintStream(client.getOutputStream());
+                toClientListPrintStream.println(DATE_FORMAT.format(new Date()) + " - " + username + " --> " + status + "\n");
             }
         }
     }
 
     private void statusToServerLog(String status) {
-        System.out.println(localIP + " @ " + publicIP);
-        System.out.println(DATE_FORMAT.format(new Date()) + " --> " + status + "\n");
+        System.out.println(DATE_FORMAT.format(new Date()) + " - " + username + " --> " + status + "\n");
     }
 
     private void messageToClient(String message) {
-        toClientPrintStream.println(localIP + " @ " + publicIP);
-        toClientPrintStream.println(DATE_FORMAT.format(new Date()) + ": " + message + "\n");
+        toClientPrintStream.println(DATE_FORMAT.format(new Date()) + " - " + username + ":");
+        toClientPrintStream.println(message + "\n");
     }
 
     private void messageToClientList(String message) throws IOException {
-        for (Map.Entry<Socket, String> entry : Server.clients.entrySet()) {
-            if (entry.getKey() != socket) {
-                toClientListPrintStream = new PrintStream(entry.getKey().getOutputStream());
-                toClientListPrintStream.println(localIP + " @ " + publicIP);
-                toClientListPrintStream.println(DATE_FORMAT.format(new Date()) + ": " + message + "\n");
+        for (Socket client : Server.clients) {
+            if (client != socket) {
+                toClientListPrintStream = new PrintStream(client.getOutputStream());
+                toClientListPrintStream.println(DATE_FORMAT.format(new Date()) + " - " + username + ":");
+                toClientListPrintStream.println(message + "\n");
             }
         }
     }
 
     private void messageToServerLog(String message) {
-        System.out.println(localIP + " @ " + publicIP);
-        System.out.println(DATE_FORMAT.format(new Date()) + ": " + message + "\n");
+        System.out.println(DATE_FORMAT.format(new Date()) + " - " + username + ": " + message + "\n");
     }
 }
